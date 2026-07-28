@@ -1,0 +1,85 @@
+name: ci-cd-pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  aws_ecr: ${{ vars.aws_ecr }}
+  aws_cluster: ${{ vars.aws_cluster }}
+  aws_container_name: ${{ vars.aws_container_name }}
+  aws_region: ${{ vars.aws_region }}
+  aws_service: ${{ vars.aws_service }}
+  aws_task_definition: task-definition.json
+
+
+jobs:
+  ci:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - name: setting up node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      
+      - name: installing dependencies
+        run: npm ci
+
+      - name: running tests
+        run: npm test --if-present
+
+  cd:
+    if: github.event_name == 'push'
+    needs: ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout code 
+        uses: actions/checkout@v4
+
+      - name: configuring aws with OIDC
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          aws_region: ${{ vars.aws_region }}
+          role-to-assume: ${{ secrets.rohan_github_actions_role }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push docker image to Amazon ECR
+        run: |
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/food-menu-app-repository:${{ github.sha }} .
+          docker push ${{ steps.login-ecr.outputs.registry }}/food-menu-app-repository:${{ github.sha }}
+
+      - name: Render Amazon ECS task definition
+        id: render-web-container
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.aws_task_definition }}
+          container-name: ${{ env.aws_container_name }}
+          image: ${{ steps.login-ecr.outputs.registry }}/food-menu-app-repository:${{ github.sha }}
+
+      - name: Deploy to Amazon ECS service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-web-container.outputs.task-definition }}
+          service: ${{ env.aws_service }}
+          cluster: ${{ env.aws_cluster }}
+          wait-for-service-stability: true
+
+        

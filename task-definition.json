@@ -1,0 +1,33 @@
+{
+  "family": "food-menu-app-app_task-def",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::236782813655:role/ecs_task_execution_role",
+  "taskRoleArn": "arn:aws:iam::236782813655:role/ecs-task-role",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "512",
+  "containerDefinitions": [
+    {
+      "name": "food-menu-container",
+      "image": "236782813655.dkr.ecr.ap-south-2.amazonaws.com/food-menu-app-repository:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/food-menu-app",
+          "awslogs-region": "ap-south-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

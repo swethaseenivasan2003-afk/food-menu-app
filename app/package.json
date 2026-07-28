@@ -1,0 +1,15 @@
+{
+  "name": "food-menu-service",
+  "version": "2.0.0",
+  "description": "FreshEats Food Delivery Menu - CI/CD Demo",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
