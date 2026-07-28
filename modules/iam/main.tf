@@ -69,7 +69,7 @@ resource "aws_iam_role" "github_actions_role" {
             "Action": "sts:AssumeRoleWithWebIdentity",
             "Condition": {
                 "StringLike": {
-                    "token.actions.githubusercontent.com:sub": "repo:swethaseenivasan2003-afk/food-menu-app:ref:refs/heads/main"
+                    "token.actions.githubusercontent.com:sub": "repo:swethaseenivasan2003-afk/food-menu-app:*"
                 },
                 "StringEquals": {
                     "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
