@@ -62,4 +62,15 @@ module "ecs" {
   ecs_security_group_id = module.security_group.ecs_sg_id
 
   target_group_arn = module.alb.target_group_arn
+
+  container_max_capacity = 4
+
+  container_min_capacity = 2
+
+  cpu_target_value = 70
+
+  memory_target_value = 80.0
+
+
+
 }

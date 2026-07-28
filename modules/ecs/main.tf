@@ -54,6 +54,12 @@ resource "aws_ecs_service" "ecs_service" {
   desired_count   = 2
   launch_type = "FARGATE"
 
+   lifecycle {
+    ignore_changes = [
+      desired_count
+    ]
+  }
+
   network_configuration  {
     subnets          = var.subnet_private_ids
     security_groups  = [var.ecs_security_group_id]
@@ -70,4 +76,59 @@ resource "aws_ecs_service" "ecs_service" {
   tags = {
     Name = "${var.project_name}-ecs-service"
 }
+}
+
+resource "aws_appautoscaling_target" "ecs_target" {
+  max_capacity       = var.container_max_capacity
+  min_capacity       = var.container_min_capacity
+  resource_id        = "service/${aws_ecs_cluster.ecs_cluster.name}/${aws_ecs_service.ecs_service.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "cpu_target_tracking" {
+  name               = "${var.project_name}-cpu-tracking"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.ecs_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
+
+    depends_on = [
+    aws_appautoscaling_target.ecs_target
+  ]
+
+  target_tracking_scaling_policy_configuration {
+    target_value = var.cpu_target_value
+    disable_scale_in   = false
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+  }
+}
+
+resource "aws_appautoscaling_policy" "ecs_policy_memory" {
+  name               = "${var.project_name}-memory-tracking-policy"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.ecs_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
+
+    depends_on = [
+    aws_appautoscaling_target.ecs_target
+  ]
+
+  target_tracking_scaling_policy_configuration {
+    target_value       = var.memory_target_value
+    disable_scale_in   = false
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+    
+
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    }
+  }
 }

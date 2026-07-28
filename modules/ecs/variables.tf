@@ -34,3 +34,19 @@ variable "ecs_security_group_id" {
 variable "target_group_arn" {
     type = string
 }
+
+variable "container_max_capacity"{
+    type = number
+}
+
+variable "container_min_capacity"{
+    type = number  
+}
+
+variable "cpu_target_value"{
+    type = number  
+}
+
+variable "memory_target_value"{
+    type = number
+}
